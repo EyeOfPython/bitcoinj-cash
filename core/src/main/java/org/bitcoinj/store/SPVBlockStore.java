@@ -78,6 +78,7 @@ public class SPVBlockStore implements BlockStore {
     // Used to stop other applications/processes from opening the store.
     protected FileLock fileLock = null;
     protected RandomAccessFile randomAccessFile = null;
+    private final String fileAbsolutePath;
 
     /**
      * Creates and initializes an SPV block store. Will create the given file if it's missing. This operation
@@ -85,6 +86,7 @@ public class SPVBlockStore implements BlockStore {
      */
     public SPVBlockStore(NetworkParameters params, File file) throws BlockStoreException {
         checkNotNull(file);
+        fileAbsolutePath = file.getAbsolutePath();
         this.params = checkNotNull(params);
         try {
             this.numHeaders = DEFAULT_NUM_HEADERS;
@@ -237,7 +239,8 @@ public class SPVBlockStore implements BlockStore {
                 Sha256Hash hash = Sha256Hash.wrap(headHash);
                 StoredBlock block = get(hash);
                 if (block == null)
-                    throw new BlockStoreException("Corrupted block store: could not find chain head: " + hash);
+                    throw new BlockStoreException("Corrupted block store: could not find chain head: " + hash
+                                                          +"\nFile path: "+ fileAbsolutePath);
                 lastChainHead = block;
             }
             return lastChainHead;
@@ -303,4 +306,24 @@ public class SPVBlockStore implements BlockStore {
         checkArgument(newCursor >= 0);
         buffer.putInt(4, newCursor);
     }
+
+
+    public void clear() throws Exception {
+        lock.lock();
+        try {
+            // Clear caches
+            blockCache.clear();
+            notFoundCache.clear();
+            // Clear file content
+            buffer.position(0);
+            long fileLength = randomAccessFile.length();
+            for (int i = 0; i < fileLength; i++) {
+                buffer.put((byte)0);
+            }
+            // Initialize store again
+            buffer.position(0);
+            initNewStore(params);
+        } finally { lock.unlock(); }
+    }
+
 }

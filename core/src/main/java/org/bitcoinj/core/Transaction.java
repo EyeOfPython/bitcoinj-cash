@@ -31,6 +31,7 @@ import org.bitcoinj.utils.ExchangeRate;
 import org.bitcoinj.wallet.Wallet;
 import org.bitcoinj.wallet.WalletTransaction.Pool;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
@@ -137,6 +138,10 @@ public class Transaction extends ChildMessage {
     // Old serialized transactions don't have this field, thus null is valid. It is used for returning an ordered
     // list of transactions from a wallet, which is helpful for presenting to users.
     private Date updatedAt;
+
+    // Date of the block that includes this transaction on the best chain
+    @Nullable
+    private Date includedInBestChainAt;
 
     // This is an in memory helper only.
     private Sha256Hash hash;
@@ -340,6 +345,9 @@ public class Transaction extends ChildMessage {
         if (bestChain && (updatedAt == null || updatedAt.getTime() == 0 || updatedAt.getTime() > blockTime)) {
             updatedAt = new Date(blockTime);
         }
+        if (bestChain) {
+            includedInBestChainAt = new Date(blockTime);
+        }
 
         addBlockAppearance(block.getHeader().getHash(), relativityOffset);
 
@@ -428,6 +436,8 @@ public class Transaction extends ChildMessage {
      */
     public Coin getFee() {
         Coin fee = Coin.ZERO;
+        if (inputs.isEmpty() || outputs.isEmpty()) // Incomplete transaction
+            return null;
         for (TransactionInput input : inputs) {
             if (input.getValue() == null)
                 return null;
@@ -476,6 +486,15 @@ public class Transaction extends ChildMessage {
 
     public void setUpdateTime(Date updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    @Nullable
+    public Date getIncludedInBestChainAt() {
+        return includedInBestChainAt;
+    }
+
+    public void setIncludedInBestChainAt(Date includedInBestChainAt) {
+        this.includedInBestChainAt = includedInBestChainAt;
     }
 
     /**
@@ -567,7 +586,7 @@ public class Transaction extends ChildMessage {
         // First come the inputs.
         long numInputs = readVarInt();
         optimalEncodingMessageSize += VarInt.sizeOf(numInputs);
-        inputs = new ArrayList<TransactionInput>((int) numInputs);
+        inputs = new ArrayList<TransactionInput>(Math.min((int) numInputs, Utils.MAX_INITIAL_ARRAY_LENGTH));
         for (long i = 0; i < numInputs; i++) {
             TransactionInput input = new TransactionInput(params, this, payload, cursor, serializer);
             inputs.add(input);
@@ -578,7 +597,7 @@ public class Transaction extends ChildMessage {
         // Now the outputs
         long numOutputs = readVarInt();
         optimalEncodingMessageSize += VarInt.sizeOf(numOutputs);
-        outputs = new ArrayList<TransactionOutput>((int) numOutputs);
+        outputs = new ArrayList<TransactionOutput>(Math.min((int) numOutputs, Utils.MAX_INITIAL_ARRAY_LENGTH));
         for (long i = 0; i < numOutputs; i++) {
             TransactionOutput output = new TransactionOutput(params, this, payload, cursor, serializer);
             outputs.add(output);
@@ -652,6 +671,8 @@ public class Transaction extends ChildMessage {
         s.append("  ").append(getHashAsString()).append('\n');
         if (updatedAt != null)
             s.append("  updated: ").append(Utils.dateTimeFormat(updatedAt)).append('\n');
+        if (includedInBestChainAt != null)
+            s.append("  included in best chain at: ").append(Utils.dateTimeFormat(includedInBestChainAt)).append('\n');
         if (version != 1)
             s.append("  version ").append(version).append('\n');
         if (isTimeLocked()) {
