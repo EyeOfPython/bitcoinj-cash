@@ -241,7 +241,7 @@ public class WalletProtobufSerializer {
         }
 
         if (tx.getIncludedInBestChainAt() != null) {
-            txBuilder.setIncludedInBestChainAt(tx.getIncludedInBestChainAt().getTime());
+            //txBuilder.setIncludedInBestChainAt(tx.getIncludedInBestChainAt().getTime());
         }
 
         if (tx.getLockTime() > 0) {
@@ -611,9 +611,9 @@ public class WalletProtobufSerializer {
             tx.setUpdateTime(new Date(txProto.getUpdatedAt()));
         }
 
-        if (txProto.hasIncludedInBestChainAt()) {
-            tx.setIncludedInBestChainAt(new Date(txProto.getIncludedInBestChainAt()));
-        }
+        //if (txProto.hasIncludedInBestChainAt()) {
+         //    tx.setIncludedInBestChainAt(new Date(txProto.getIncludedInBestChainAt()));
+        //}
 
         for (Protos.TransactionOutput outputProto : txProto.getTransactionOutputList()) {
             Coin value = Coin.valueOf(outputProto.getValue());

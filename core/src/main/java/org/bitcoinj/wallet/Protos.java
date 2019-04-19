@@ -8219,23 +8219,6 @@ public final class Protos {
     long getUpdatedAt();
 
     /**
-     * <code>optional int64 included_in_best_chain_at = 1000;</code>
-     *
-     * <pre>
-     * millis since epoch the transaction was included on the best chain
-     * </pre>
-     */
-    boolean hasIncludedInBestChainAt();
-    /**
-     * <code>optional int64 included_in_best_chain_at = 1000;</code>
-     *
-     * <pre>
-     * millis since epoch the transaction was included on the best chain
-     * </pre>
-     */
-    long getIncludedInBestChainAt();
-
-    /**
      * <code>repeated .wallet.TransactionInput transaction_input = 6;</code>
      */
     java.util.List<org.bitcoinj.wallet.Protos.TransactionInput> 
